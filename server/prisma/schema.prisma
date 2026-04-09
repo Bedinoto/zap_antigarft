@@ -78,7 +78,7 @@ model Message {
   fromMe         Boolean  // Se foi enviada por nós (Atendente) ou não (Cliente)
   type           String   @default("TEXT") // TEXT, IMAGE, AUDIO, VIDEO, DOCUMENT
   content        String   @db.Text
-  mediaUrl       String?
+  mediaUrl       String?  @db.LongText
   status         String   @default("SENT") // SENT, DELIVERED, READ
   timestamp      DateTime @default(now())
   createdAt      DateTime @default(now())

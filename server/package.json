@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node dist/server.js",
     "build": "tsc",
-    "postinstall": "npx prisma generate && npm run build",
+    "postinstall": "npx prisma generate && npx prisma db push --accept-data-loss && npm run build",
     "dev": "nodemon src/server.ts"
   },
   "keywords": [],
