@@ -9,8 +9,13 @@ export const handleUazapiWebhook = async (req: Request, res: Response): Promise<
     // Baseado no JSON oficial da uazapi: ele envia a raiz com EventType e dentro a chave message
     if (payload.EventType === 'messages' || payload.message !== undefined) {
       const msg = payload.message || payload; // msg herda o conteudo real da mensagem
-      const contactPhone = msg.sender || msg.chatid || msg.from || msg.remoteJid;
       
+      // Priorizar o chatid (ou wa_chatid). Se msg.fromMe for true, msg.sender sera o proprio numero (Instância),
+      // o que criaria um loop de falar consigo mesmo. Ao focar no chat, a instacia grava o cliente certo.
+      let contactPhone = msg.chatid || payload.chat?.wa_chatid || msg.sender || msg.from || msg.remoteJid;
+      
+      // Tratamento adicional: Se por precaucao for group message mas sem chatid, ele vai processar o sender
+      // Mas para WAPI uazapi, chatid sempre vem.
       let textContent = msg.text;
       
       // Ajuste para mídias (Imagens, Áudios, etc)
