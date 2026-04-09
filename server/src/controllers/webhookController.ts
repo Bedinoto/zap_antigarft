@@ -8,15 +8,13 @@ export const handleUazapiWebhook = async (req: Request, res: Response): Promise<
 
     // Exemplo de como uazapi pode enviar dados (assumindo formato tipo evolution API / baileys)
     // Precisamos ajustar as chaves do objeto conforme a documentação oficial ou os testes na prática
-    const { instanceName, type, data } = payload;
-
-    // Se for mensagem recebida 'message.upsert'
-    if (type === 'message' || payload.event === 'message' || type === 'message.upsert') {
-      const msg = data || payload.data || payload.message;
-      const contactPhone = msg.remoteJid || msg.from; // +551199999999@s.whatsapp.net
+    // Verifica se é uma mensagem de texto válida pela estrutura da uazapiGO
+    if (payload.type === 'text' || payload.text !== undefined || payload.messageType !== undefined) {
+      const msg = payload; // A uazapiGO envia o objeto flat, sem wrapper 'data'
+      const contactPhone = msg.sender || msg.from || msg.remoteJid;
       
-      if (!contactPhone || !msg.message) {
-        res.status(200).send('OK (Sem dados relevantes)');
+      if (!contactPhone || !msg.text) {
+        res.status(200).send('OK (Sem texto ou remetente)');
         return;
       }
 
@@ -26,16 +24,16 @@ export const handleUazapiWebhook = async (req: Request, res: Response): Promise<
       });
       if (!contact) {
         contact = await prisma.contact.create({
-          data: { phoneNumber: contactPhone, name: msg.pushName || 'Desconhecido' }
+          data: { phoneNumber: contactPhone, name: msg.senderName || 'Desconhecido' }
         });
       }
 
-      // 2. Acha a Instância para buscar ID
-      // Como é flexível, se faltar instancia a gnt tenta capturar de alguma default configurada
-      let instanceInfo = await prisma.instance.findFirst({ where: { name: instanceName || 'default' }});
-      if(!instanceInfo) {
+      // 2. Acha a Instância baseada no token retornado
+      const instanceToken = msg.token || process.env.UAZAPI_INSTANCE_TOKEN;
+      let instanceInfo = await prisma.instance.findFirst({ where: { token: instanceToken }});
+      if (!instanceInfo) {
          instanceInfo = await prisma.instance.create({
-           data: { name: instanceName || 'default' }
+           data: { name: msg.owner || 'default', token: instanceToken }
          });
       }
 
@@ -43,7 +41,6 @@ export const handleUazapiWebhook = async (req: Request, res: Response): Promise<
       let conversation = await prisma.conversation.findFirst({
         where: {
           contactId: contact.id,
-          // status: { not: 'CLOSED' } -> Poderia puxar sempre a aberta, mas simplificando:
         },
         orderBy: { updatedAt: 'desc' }
       });
@@ -59,7 +56,7 @@ export const handleUazapiWebhook = async (req: Request, res: Response): Promise<
       }
 
       // 4. Salva a Mensagem
-      const textContent = msg.message?.conversation || msg.message?.extendedTextMessage?.text || 'Mensagem sem texto ou Mídia';
+      const textContent = msg.text || 'Mensagem sem texto';
       
       const savedMessage = await prisma.message.create({
         data: {
