@@ -8,8 +8,8 @@ import {
 import './Dashboard.css';
 
 const isProd = window.location.hostname !== 'localhost';
-const API_URL = isProd ? 'https://api.bedinotecnologia.com/api' : 'http://localhost:3001/api';
-const SOCKET_URL = isProd ? 'https://api.bedinotecnologia.com' : 'http://localhost:3001';
+const API_URL = isProd ? 'https://zap-api-fq2p.onrender.com/api' : 'http://localhost:3001/api';
+const SOCKET_URL = isProd ? 'https://zap-api-fq2p.onrender.com' : 'http://localhost:3001';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('conversas');
