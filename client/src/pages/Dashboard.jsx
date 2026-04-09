@@ -22,6 +22,9 @@ export default function Dashboard() {
   // Input State
   const [inputText, setInputText] = useState('');
   
+  // Image Modal State
+  const [expandedImage, setExpandedImage] = useState(null);
+  
   // Socket State
   const [socket, setSocket] = useState(null);
   const messagesEndRef = useRef(null);
@@ -259,12 +262,12 @@ export default function Dashboard() {
                     <div key={msg.id || idx} className={`message ${msg.fromMe ? 'sent' : 'received'}`}>
                       <div className="message-content">
                         {msg.type === 'IMAGE' && msg.mediaUrl && (
-                          <div style={{ marginBottom: '8px' }}>
+                          <div className="message-image-container">
                             <img 
                               src={msg.mediaUrl} 
                               alt="Anexo" 
-                              style={{ maxWidth: '100%', borderRadius: '8px', cursor: 'pointer' }}
-                              onClick={() => window.open(msg.mediaUrl, '_blank')}
+                              className="chat-image-thumbnail"
+                              onClick={() => setExpandedImage(msg.mediaUrl)}
                             />
                           </div>
                         )}
@@ -316,6 +319,14 @@ export default function Dashboard() {
                 <p className="text-muted">Clique em um contato na barra do lado esquerdo para assumir o atendimento e conversar.</p>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Fullscreen Image Modal */}
+        {expandedImage && (
+          <div className="fullscreen-image-modal" onClick={() => setExpandedImage(null)}>
+            <div className="modal-close">X</div>
+            <img src={expandedImage} alt="Fullscreen Preview" className="fullscreen-image" />
           </div>
         )}
       </main>
