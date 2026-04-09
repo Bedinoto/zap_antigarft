@@ -385,12 +385,42 @@
 }
 
 .chat-input-area {
-  padding: 1rem 1.5rem;
-  background-color: var(--bg-secondary);
+  padding: 1rem;
   border-top: 1px solid var(--border-color);
   display: flex;
   align-items: center;
+  gap: 0.5rem;
+  position: relative;
+}
+
+.attachment-preview {
+  position: absolute;
+  top: -45px;
+  left: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border-color);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
   gap: 1rem;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  font-size: 0.85rem;
+}
+
+.preview-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-primary);
+}
+
+.remove-btn {
+  background: transparent;
+  border: none;
+  color: var(--error);
+  cursor: pointer;
+  font-weight: bold;
 }
 
 .message-input {

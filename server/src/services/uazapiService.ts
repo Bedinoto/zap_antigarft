@@ -20,7 +20,6 @@ export const UazapiService = {
   // Enviar uma mensagem de texto simples
   sendText: async (instanceName: string, number: string, text: string) => {
     try {
-      // Ajustado com sucesso pro endpoint coreto
       const response = await api.post(`/send/text`, {
         number: number,
         text: text
@@ -28,6 +27,22 @@ export const UazapiService = {
       return response.data;
     } catch (error: any) {
       console.error(`Erro ao enviar mensagem uazapi:`, error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Enviar Arquivo/Imagem (em Base64)
+  sendMedia: async (instanceName: string, number: string, base64: string, caption: string, extName: string = 'image') => {
+    try {
+      const response = await api.post(`/send/media`, {
+        number: number,
+        type: extName, // "image", "document", "audio", "video"
+        text: caption || "",
+        file: base64
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error(`Erro ao enviar midia uazapi:`, error.response?.data || error.message);
       throw error;
     }
   },

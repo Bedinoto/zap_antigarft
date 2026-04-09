@@ -87,19 +87,27 @@ export default function Dashboard() {
     }
   };
 
+  const fileInputRef = useRef(null);
+  const [attachment, setAttachment] = useState(null);
+
   const handleSendMessage = async () => {
-    if (!inputText.trim() || !activeChat) return;
+    if (!activeChat) return;
+    if (!inputText.trim() && !attachment) return;
     
     const textToSend = inputText;
-    setInputText(''); // limpa UI para percepção rapida
+    const currentAttachment = attachment;
+    
+    setInputText('');
+    setAttachment(null);
 
     try {
       await axios.post(`${API_URL}/messages/send`, {
         conversationId: activeChat.id,
         text: textToSend,
-        userId: 'admin-init-12345' // Puxaria do Auth Token em prod
+        mediaBase64: currentAttachment ? currentAttachment.base64 : null,
+        mediaType: currentAttachment ? currentAttachment.type : null,
+        userId: 'admin-init-12345'
       });
-      // A UI atualiza automaticamente pelo WebSocket enviado do servidor
     } catch (err) {
       console.error('Falha ao enviar mensagem', err);
       alert('Erro ao enviar mensagem');
@@ -109,6 +117,21 @@ export default function Dashboard() {
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
       handleSendMessage();
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setAttachment({
+          base64: event.target.result,
+          type: file.type.startsWith('image/') ? 'image' : 'document',
+          name: file.name
+        });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -255,16 +278,33 @@ export default function Dashboard() {
                 </div>
 
                 <div className="chat-input-area glass-panel">
-                  <button className="icon-btn attachment-btn" title="Arquivos temporariamente desativados"><Paperclip size={20} /></button>
+                  {attachment && (
+                    <div className="attachment-preview">
+                      <div className="preview-info">
+                        <Paperclip size={14} />
+                        <span>{attachment.name}</span>
+                      </div>
+                      <button className="remove-btn" onClick={() => setAttachment(null)}>X</button>
+                    </div>
+                  )}
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    style={{display: 'none'}} 
+                    onChange={handleFileSelect}
+                  />
+                  <button className="icon-btn attachment-btn" title="Anexar Arquivo" onClick={() => fileInputRef.current.click()}>
+                    <Paperclip size={20} />
+                  </button>
                   <input 
                     type="text" 
-                    placeholder="Digite sua mensagem..." 
+                    placeholder="Digite sua mensagem (opcional se enviar anexo)..." 
                     className="message-input" 
                     value={inputText}
                     onChange={e => setInputText(e.target.value)}
                     onKeyPress={handleKeyPress}
                   />
-                  <button className="btn-primary send-btn" onClick={handleSendMessage}>
+                  <button className="btn-primary send-btn" onClick={handleSendMessage} disabled={!inputText.trim() && !attachment}>
                     <Send size={18} />
                   </button>
                 </div>

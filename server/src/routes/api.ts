@@ -38,7 +38,7 @@ router.get('/conversations/:id/messages', async (req, res) => {
 
 // Enviar Mensagem do Atendente para o Cliente
 router.post('/messages/send', async (req, res) => {
-  const { conversationId, text, userId } = req.body;
+  const { conversationId, text, userId, mediaBase64, mediaType } = req.body;
 
   try {
     const conversation = await prisma.conversation.findUnique({
@@ -51,26 +51,38 @@ router.post('/messages/send', async (req, res) => {
     }
 
     // Dispara para a API Externa
-    const apiResponse = await UazapiService.sendText(
-      conversation.instance.name, 
-      conversation.contact.phoneNumber, 
-      text
-    );
+    if (mediaBase64) {
+      await UazapiService.sendMedia(
+        conversation.instance.name,
+        conversation.contact.phoneNumber,
+        mediaBase64,
+        text, // caption
+        mediaType || "image"
+      );
+    } else {
+      await UazapiService.sendText(
+        conversation.instance.name, 
+        conversation.contact.phoneNumber, 
+        text
+      );
+    }
 
     // Salva a mensagem no Banco como enviada por nós
     const message = await prisma.message.create({
       data: {
         conversationId,
         fromMe: true,
-        content: text,
-        type: 'TEXT'
+        content: text || (mediaType === "image" ? "📷 [Imagem enviada]" : "📎 [Mídia enviada]"),
+        type: mediaBase64 ? 'IMAGE' : 'TEXT',
+        mediaUrl: mediaBase64 || null
       }
     });
 
     // Atualiza status da conversa caso estivesse WAITING para ACTIVE
+    const summaryText = text || (mediaType === "image" ? "📷 [Imagem enviada]" : "📎 [Mídia enviada]");
     await prisma.conversation.update({
       where: { id: conversationId },
-      data: { status: 'ACTIVE', userId, lastMessage: text, updatedAt: new Date() }
+      data: { status: 'ACTIVE', userId, lastMessage: summaryText, updatedAt: new Date() }
     });
 
     // Emite para o Frontend atualizar (caso haja outro login com msm conta)
