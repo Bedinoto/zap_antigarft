@@ -6,12 +6,10 @@ export const handleUazapiWebhook = async (req: Request, res: Response): Promise<
     const payload = req.body;
     console.log('[WEBHOOK uazapiGO] Recebido:', JSON.stringify(payload, null, 2));
 
-    // Exemplo de como uazapi pode enviar dados (assumindo formato tipo evolution API / baileys)
-    // Precisamos ajustar as chaves do objeto conforme a documentação oficial ou os testes na prática
-    // Verifica se é uma mensagem de texto válida pela estrutura da uazapiGO
-    if (payload.type === 'text' || payload.text !== undefined || payload.messageType !== undefined) {
-      const msg = payload; // A uazapiGO envia o objeto flat, sem wrapper 'data'
-      const contactPhone = msg.sender || msg.from || msg.remoteJid;
+    // Baseado no JSON oficial da uazapi: ele envia a raiz com EventType e dentro a chave message
+    if (payload.EventType === 'messages' || payload.message !== undefined) {
+      const msg = payload.message || payload; // msg herda o conteudo real da mensagem
+      const contactPhone = msg.sender || msg.chatid || msg.from || msg.remoteJid;
       
       if (!contactPhone || !msg.text) {
         res.status(200).send('OK (Sem texto ou remetente)');
@@ -29,11 +27,11 @@ export const handleUazapiWebhook = async (req: Request, res: Response): Promise<
       }
 
       // 2. Acha a Instância baseada no token retornado
-      const instanceToken = msg.token || process.env.UAZAPI_INSTANCE_TOKEN;
+      const instanceToken = payload.token || msg.token || process.env.UAZAPI_INSTANCE_TOKEN;
       let instanceInfo = await prisma.instance.findFirst({ where: { token: instanceToken }});
       if (!instanceInfo) {
          instanceInfo = await prisma.instance.create({
-           data: { name: msg.owner || 'default', token: instanceToken }
+           data: { name: payload.instanceName || msg.owner || 'default', token: instanceToken }
          });
       }
 
