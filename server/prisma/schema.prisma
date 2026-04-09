@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(AGENT)
+  status    String   @default("OFFLINE") // ONLINE, OFFLINE
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  Conversations Conversation[]
+}
+
+enum Role {
+  ADMIN
+  AGENT
+}
+
+model Contact {
+  id          String   @id @default(uuid())
+  phoneNumber String   @unique // ex: 5511999999999
+  name        String?
+  profilePicUrl String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  Conversations Conversation[]
+}
+
+// Representa a conexão do sistema com o uazapiGO (Aparelho do WhatsApp)
+model Instance {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  status      String   @default("DISCONNECTED") // CONNECTED, DISCONNECTED, QRCODE
+  qrCodeUrl   String?  // base64 ou url
+  phoneNumber String?
+  token       String?  // token da uazapiGO para aquela instancia
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  Conversations Conversation[]
+}
+
+model Conversation {
+  id          String   @id @default(uuid())
+  status      String   @default("WAITING") // WAITING, ACTIVE, CLOSED
+  lastMessage String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  contactId   String
+  contact     Contact  @relation(fields: [contactId], references: [id])
+  
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  
+  instanceId  String
+  instance    Instance @relation(fields: [instanceId], references: [id])
+
+  Messages    Message[]
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  
+  fromMe         Boolean  // Se foi enviada por nós (Atendente) ou não (Cliente)
+  type           String   @default("TEXT") // TEXT, IMAGE, AUDIO, VIDEO, DOCUMENT
+  content        String   @db.Text
+  mediaUrl       String?
+  status         String   @default("SENT") // SENT, DELIVERED, READ
+  timestamp      DateTime @default(now())
+  createdAt      DateTime @default(now())
+}
