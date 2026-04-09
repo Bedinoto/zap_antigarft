@@ -11,8 +11,17 @@ export const handleUazapiWebhook = async (req: Request, res: Response): Promise<
       const msg = payload.message || payload; // msg herda o conteudo real da mensagem
       const contactPhone = msg.sender || msg.chatid || msg.from || msg.remoteJid;
       
-      if (!contactPhone || !msg.text) {
-        res.status(200).send('OK (Sem texto ou remetente)');
+      let textContent = msg.text;
+      
+      // Ajuste para mídias (Imagens, Áudios, etc)
+      if (!textContent && msg.mediaType === "image") textContent = "📷 [Imagem]";
+      else if (!textContent && msg.mediaType === "audio") textContent = "🎵 [Áudio]";
+      else if (!textContent && msg.mediaType === "document") textContent = "📄 [Documento]";
+      else if (!textContent && msg.type === "media") textContent = "📎 [Mídia]";
+      else if (!textContent) textContent = "Mensagem não decodificada";
+
+      if (!contactPhone) {
+        res.status(200).send('OK (Sem remetente)');
         return;
       }
 
@@ -53,8 +62,7 @@ export const handleUazapiWebhook = async (req: Request, res: Response): Promise<
         });
       }
 
-      // 4. Salva a Mensagem
-      const textContent = msg.text || 'Mensagem sem texto';
+      // 4. Salva a Mensagem (textContent já tratado no início da função)
       
       const savedMessage = await prisma.message.create({
         data: {
