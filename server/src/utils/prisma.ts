@@ -3,11 +3,7 @@ import { PrismaClient } from '@prisma/client';
 // Evitar instanciar múltiplos clientes Prisma em ambiente de desenvolvimento (Hot Reloading)
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
-export const prisma = globalForPrisma.prisma || new PrismaClient({
-  datasources: {
-    db: { url: process.env.DATABASE_URL }
-  }
-});
+export const prisma = globalForPrisma.prisma || new PrismaClient();
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
