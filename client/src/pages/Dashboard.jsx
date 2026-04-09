@@ -235,6 +235,16 @@ export default function Dashboard() {
                   {messages.map((msg, idx) => (
                     <div key={msg.id || idx} className={`message ${msg.fromMe ? 'sent' : 'received'}`}>
                       <div className="message-content">
+                        {msg.type === 'IMAGE' && msg.mediaUrl && (
+                          <div style={{ marginBottom: '8px' }}>
+                            <img 
+                              src={msg.mediaUrl} 
+                              alt="Anexo" 
+                              style={{ maxWidth: '100%', borderRadius: '8px', cursor: 'pointer' }}
+                              onClick={() => window.open(msg.mediaUrl, '_blank')}
+                            />
+                          </div>
+                        )}
                         {msg.content}
                         {msg.fromMe && <CheckCheck size={14} className="read-status" />}
                       </div>

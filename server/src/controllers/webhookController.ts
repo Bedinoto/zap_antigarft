@@ -62,14 +62,15 @@ export const handleUazapiWebhook = async (req: Request, res: Response): Promise<
         });
       }
 
-      // 4. Salva a Mensagem (textContent já tratado no início da função)
-      
       const savedMessage = await prisma.message.create({
         data: {
           conversationId: conversation.id,
           content: textContent,
           fromMe: msg.fromMe || false,
-          type: 'TEXT', // Expandir para MEDIA depois
+          type: msg.mediaType === 'image' ? 'IMAGE' : 'TEXT',
+          mediaUrl: msg.mediaType === 'image' && msg.content?.JPEGThumbnail 
+                      ? `data:image/jpeg;base64,${msg.content.JPEGThumbnail}` 
+                      : null,
         }
       });
 
