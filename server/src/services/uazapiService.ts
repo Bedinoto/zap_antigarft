@@ -12,7 +12,7 @@ const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
-    'apikey': INSTANCE_TOKEN // Header padrão em APIS Whatsapp (pode ser Authorization: Bearer TB)
+    'token': INSTANCE_TOKEN
   }
 });
 
@@ -20,16 +20,10 @@ export const UazapiService = {
   // Enviar uma mensagem de texto simples
   sendText: async (instanceName: string, number: string, text: string) => {
     try {
-      // Ajuste o endpoint conforme a doc exata da uazapi (ex: /message/sendText ou /chat/sendmessage)
-      const response = await api.post(`/message/sendText/${instanceName}`, {
+      // Ajustado com sucesso pro endpoint coreto
+      const response = await api.post(`/send/text`, {
         number: number,
-        options: {
-          delay: 1200,
-          presence: "composing"
-        },
-        textMessage: {
-          text: text
-        }
+        text: text
       });
       return response.data;
     } catch (error: any) {
