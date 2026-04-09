@@ -271,7 +271,21 @@ export default function Dashboard() {
                             />
                           </div>
                         )}
-                        {msg.content}
+                        {msg.type === 'AUDIO' && msg.mediaUrl && (
+                          <div className="message-audio-container">
+                            <audio controls src={msg.mediaUrl} className="chat-audio-player" />
+                          </div>
+                        )}
+                        {msg.type === 'VIDEO' && msg.mediaUrl && (
+                          <div className="message-video-container">
+                            <video controls src={msg.mediaUrl} className="chat-video-player" />
+                          </div>
+                        )}
+                        {msg.type !== 'AUDIO' && msg.type !== 'VIDEO' && msg.type !== 'IMAGE' && msg.content}
+                        {(msg.type === 'IMAGE' || msg.type === 'AUDIO' || msg.type === 'VIDEO') && msg.content && (
+                           <div className="media-caption">{msg.content}</div>
+                        )}
+                        
                         {msg.fromMe && <CheckCheck size={14} className="read-status" />}
                       </div>
                       <span className="message-time">{formatTime(msg.createdAt || new Date())}</span>

@@ -67,24 +67,39 @@ export const handleUazapiWebhook = async (req: Request, res: Response): Promise<
       const { UazapiService } = require('../services/uazapiService');
 
       let finalMediaUrl = null;
-      if (msg.mediaType === 'image') {
-         // Tentar baixar da API da Uazapi!
-         // Usar messageid como vimos lá no manual
-         const downloadData = await UazapiService.downloadMedia(msg.messageid || msg.id);
+      let finalType = 'TEXT';
+      
+      const mediaTypesMap: Record<string, string> = {
+         'image': 'IMAGE',
+         'audio': 'AUDIO',
+         'ptt': 'AUDIO',     // whatsapp voice notes
+         'video': 'VIDEO',
+         'document': 'DOCUMENT'
+      };
+
+      if (msg.mediaType && mediaTypesMap[msg.mediaType]) {
+         finalType = mediaTypesMap[msg.mediaType];
          
-         if (downloadData && downloadData.base64Data) {
-            finalMediaUrl = `data:${downloadData.mimetype || 'image/jpeg'};base64,${downloadData.base64Data}`;
-         } else if (msg.content?.JPEGThumbnail) {
-            finalMediaUrl = `data:image/jpeg;base64,${msg.content.JPEGThumbnail}`; // Fallback pra miniatura
+         if (['image', 'audio', 'ptt', 'video'].includes(msg.mediaType)) {
+             // Tentar baixar da API da Uazapi!
+             // Uazapi converte audio para mp3 por padrao (generate_mp3=true internamente ou na API)
+             // msg.messageid || msg.id protege caso o schema do uazapi variar
+             const downloadData = await UazapiService.downloadMedia(msg.messageid || msg.id);
+             
+             if (downloadData && downloadData.base64Data) {
+                finalMediaUrl = `data:${downloadData.mimetype || 'application/octet-stream'};base64,${downloadData.base64Data}`;
+             } else if (msg.mediaType === 'image' && msg.content?.JPEGThumbnail) {
+                finalMediaUrl = `data:image/jpeg;base64,${msg.content.JPEGThumbnail}`; // Fallback pra miniatura
+             }
          }
       }
 
       const savedMessage = await prisma.message.create({
         data: {
           conversationId: conversation.id,
-          content: textContent,
+          content: textContent || (finalType === 'AUDIO' ? '🎵 [Áudio]' : finalType === 'VIDEO' ? '🎥 [Vídeo]' : undefined),
           fromMe: msg.fromMe || false,
-          type: msg.mediaType === 'image' ? 'IMAGE' : 'TEXT',
+          type: finalType,
           mediaUrl: finalMediaUrl
         }
       });

@@ -423,8 +423,8 @@
   font-weight: bold;
 }
 
-/* Chat Image Layouts */
-.message-image-container {
+/* Chat Image & Media Layouts */
+.message-image-container, .message-video-container {
   margin-bottom: 8px;
   max-width: 250px;
   border-radius: 8px;
@@ -439,6 +439,31 @@
   object-fit: contain;
   cursor: zoom-in;
   display: block;
+}
+
+.message-audio-container {
+  margin-bottom: 8px;
+  max-width: 280px;
+}
+
+.chat-audio-player {
+  height: 40px;
+  width: 100%;
+  outline: none;
+}
+
+.chat-video-player {
+  width: 100%;
+  height: auto;
+  max-height: 250px;
+  display: block;
+  outline: none;
+}
+
+.media-caption {
+  font-size: 0.9em;
+  margin-top: 4px;
+  word-wrap: break-word;
 }
 
 /* Fullscreen Image Lightbox Modal */
