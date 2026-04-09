@@ -47,6 +47,20 @@ export const UazapiService = {
     }
   },
 
+  // Baixar Mídia Recebida (Original HD)
+  downloadMedia: async (messageId: string) => {
+    try {
+      const response = await api.post(`/message/download`, {
+        id: messageId,
+        return_base64: true
+      });
+      return response.data; // { base64Data, fileURL, mimetype }
+    } catch (error: any) {
+      console.error(`Erro ao baixar midia uazapi:`, error.response?.data || error.message);
+      return null;
+    }
+  },
+
   // Checar o status da instância
   checkConnection: async (instanceName: string) => {
     try {

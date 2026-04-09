@@ -62,15 +62,30 @@ export const handleUazapiWebhook = async (req: Request, res: Response): Promise<
         });
       }
 
+      // Import do Servico caso nao tenha no webhookController (Precisa estar importado)
+      // O imports global desse modulo ja deve conter Prisma. Vamos garantir puxando UazapiService
+      const { UazapiService } = require('../services/uazapiService');
+
+      let finalMediaUrl = null;
+      if (msg.mediaType === 'image') {
+         // Tentar baixar da API da Uazapi!
+         // Usar messageid como vimos lá no manual
+         const downloadData = await UazapiService.downloadMedia(msg.messageid || msg.id);
+         
+         if (downloadData && downloadData.base64Data) {
+            finalMediaUrl = `data:${downloadData.mimetype || 'image/jpeg'};base64,${downloadData.base64Data}`;
+         } else if (msg.content?.JPEGThumbnail) {
+            finalMediaUrl = `data:image/jpeg;base64,${msg.content.JPEGThumbnail}`; // Fallback pra miniatura
+         }
+      }
+
       const savedMessage = await prisma.message.create({
         data: {
           conversationId: conversation.id,
           content: textContent,
           fromMe: msg.fromMe || false,
           type: msg.mediaType === 'image' ? 'IMAGE' : 'TEXT',
-          mediaUrl: msg.mediaType === 'image' && msg.content?.JPEGThumbnail 
-                      ? `data:image/jpeg;base64,${msg.content.JPEGThumbnail}` 
-                      : null,
+          mediaUrl: finalMediaUrl
         }
       });
 
