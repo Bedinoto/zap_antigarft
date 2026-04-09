@@ -2,9 +2,12 @@
   "name": "server",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node dist/server.js",
+    "build": "tsc",
+    "postinstall": "npx prisma generate && npm run build",
+    "dev": "nodemon src/server.ts"
   },
   "keywords": [],
   "author": "",
