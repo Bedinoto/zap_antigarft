@@ -7,8 +7,9 @@ import {
 } from 'lucide-react';
 import './Dashboard.css';
 
-const API_URL = 'http://localhost:3001/api';
-const SOCKET_URL = 'http://localhost:3001';
+const isProd = window.location.hostname !== 'localhost';
+const API_URL = isProd ? 'https://api.bedinotecnologia.com/api' : 'http://localhost:3001/api';
+const SOCKET_URL = isProd ? 'https://api.bedinotecnologia.com' : 'http://localhost:3001';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('conversas');
