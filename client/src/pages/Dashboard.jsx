@@ -353,9 +353,9 @@ export default function Dashboard() {
                         )}
                         {msg.type === 'DOCUMENT' && msg.mediaUrl && (
                           <div className="message-document-container">
-                            <a href={msg.mediaUrl} download={`documento_${msg.id.substring(0,6)}`} className="btn-document-download">
+                            <a href={msg.mediaUrl} download={msg.mediaName || `documento_${msg.id.substring(0,6)}`} className="btn-document-download" title={msg.mediaName || "Baixar Documento"}>
                               <Paperclip size={16} />
-                              Baixar Documento
+                              {msg.mediaName || "Baixar Documento"}
                             </a>
                           </div>
                         )}

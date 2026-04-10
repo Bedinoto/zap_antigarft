@@ -99,13 +99,16 @@ export const handleUazapiWebhook = async (req: Request, res: Response): Promise<
          }
       }
 
+      const theMediaName = msg.fileName || msg.content?.documentFileName || msg.content?.fileName || msg.content?.title || msg.content?.name || null;
+
       const savedMessage = await prisma.message.create({
         data: {
           conversationId: conversation.id,
-          content: textContent || (finalType === 'AUDIO' ? '🎵 [Áudio]' : finalType === 'VIDEO' ? '🎥 [Vídeo]' : undefined),
+          content: textContent || (finalType === 'AUDIO' ? '🎵 [Áudio]' : finalType === 'VIDEO' ? '🎥 [Vídeo]' : finalType === 'DOCUMENT' ? (theMediaName || '📄 [Documento]') : undefined),
           fromMe: msg.fromMe || false,
           type: finalType,
-          mediaUrl: finalMediaUrl
+          mediaUrl: finalMediaUrl,
+          mediaName: theMediaName
         }
       });
 

@@ -79,6 +79,7 @@ model Message {
   type           String   @default("TEXT") // TEXT, IMAGE, AUDIO, VIDEO, DOCUMENT
   content        String   @db.Text
   mediaUrl       String?  @db.LongText
+  mediaName      String?
   status         String   @default("SENT") // SENT, DELIVERED, READ
   timestamp      DateTime @default(now())
   createdAt      DateTime @default(now())

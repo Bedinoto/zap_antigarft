@@ -38,7 +38,7 @@ router.get('/conversations/:id/messages', async (req, res) => {
 
 // Enviar Mensagem do Atendente para o Cliente
 router.post('/messages/send', async (req, res) => {
-  const { conversationId, text, userId, mediaBase64, mediaType } = req.body;
+  const { conversationId, text, userId, mediaBase64, mediaType, mediaName } = req.body;
 
   try {
     const conversation = await prisma.conversation.findUnique({
@@ -58,6 +58,8 @@ router.post('/messages/send', async (req, res) => {
         mediaBase64,
         text, // caption
         mediaType || "image"
+        // NOTA: Em versões estendidas a Uazapi aceita o parameter 'fileName' na requisição sendMedia.
+        // Opcional: ajustar sendMedia futuramente se necessário enviar com nome final.
       );
     } else {
       await UazapiService.sendText(
@@ -76,7 +78,7 @@ router.post('/messages/send', async (req, res) => {
        if (dbType === 'IMAGE') label = '📷 [Imagem enviada]';
        else if (dbType === 'AUDIO') label = '🎵 [Áudio enviado]';
        else if (dbType === 'VIDEO') label = '🎥 [Vídeo enviado]';
-       else if (dbType === 'DOCUMENT') label = '📄 [Documento enviado]';
+       else if (dbType === 'DOCUMENT') label = mediaName || '📄 [Documento enviado]';
        else label = '📎 [Mídia enviada]';
     }
 
@@ -87,7 +89,8 @@ router.post('/messages/send', async (req, res) => {
         fromMe: true,
         content: text || label,
         type: dbType,
-        mediaUrl: mediaBase64 || null
+        mediaUrl: mediaBase64 || null,
+        mediaName: mediaName || null
       }
     });
 
