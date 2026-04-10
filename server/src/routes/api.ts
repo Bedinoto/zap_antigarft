@@ -96,4 +96,85 @@ router.post('/messages/send', async (req, res) => {
   }
 });
 
+// ---------------------------
+// ROTAS DE GERENCIAMENTO DE USUÁRIOS (AGENTES)
+// ---------------------------
+
+// Listar todos os Agentes
+router.get('/users', async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    // Removemos a senha da resposta por segurança
+    const safeUsers = users.map(u => {
+      const { password, ...userWithoutPassword } = u;
+      return userWithoutPassword;
+    });
+    res.json(safeUsers);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar agentes' });
+  }
+});
+
+// Criar novo Agente
+router.post('/users', async (req, res) => {
+  const { name, email, password, role, status } = req.body;
+  try {
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      return res.status(400).json({ error: 'E-mail já está em uso.' });
+    }
+    
+    // (MVP: Salvando senha plain-text pois não há bcrypt no projeto. Ideal usar hash futuro)
+    const newUser = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password, // <-- Ideal criptografar
+        role: role || 'AGENT',
+        status: status || 'OFFLINE'
+      }
+    });
+
+    const { password: _, ...userWithoutPassword } = newUser;
+    res.status(201).json(userWithoutPassword);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao criar agente' });
+  }
+});
+
+// Editar Agente
+router.put('/users/:id', async (req, res) => {
+  const { id } = req.params;
+  const { name, email, password, role, status } = req.body;
+  try {
+    const updateData: any = { name, email, role, status };
+    if (password && password.trim() !== '') {
+      updateData.password = password;
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: updateData
+    });
+    const { password: _, ...userWithoutPassword } = updatedUser;
+    res.json(userWithoutPassword);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao atualizar agente' });
+  }
+});
+
+// Excluir Agente
+router.delete('/users/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    // Caso existam conversas atreladas, pode falhar devido à Foreign Key Constraint
+    await prisma.user.delete({ where: { id } });
+    res.json({ success: true, message: 'Agente deletado com sucesso.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao excluir agente (talvez já tenha conversas no histórico)' });
+  }
+});
+
 export default router;

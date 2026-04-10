@@ -3,7 +3,8 @@ import axios from 'axios';
 import { io } from 'socket.io-client';
 import { 
   MessageSquare, Users, Smartphone, Settings, BarChart2, 
-  Search, Send, Paperclip, MoreVertical, LogOut, Check, CheckCheck 
+  Search, Send, Paperclip, MoreVertical, LogOut, Check, CheckCheck, 
+  UserCog, Edit, Trash2, Plus, X
 } from 'lucide-react';
 import './Dashboard.css';
 
@@ -24,6 +25,12 @@ export default function Dashboard() {
   
   // Image Modal State
   const [expandedImage, setExpandedImage] = useState(null);
+  
+  // Users/Agents State
+  const [users, setUsers] = useState([]);
+  const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
+  const [editingAgent, setEditingAgent] = useState(null);
+  const [agentForm, setAgentForm] = useState({ name: '', email: '', password: '', role: 'AGENT', status: 'OFFLINE' });
   
   // Socket State
   const [socket, setSocket] = useState(null);
@@ -69,6 +76,65 @@ export default function Dashboard() {
 
     return () => newSocket.close();
   }, []);
+
+  // Busca Conversas
+  useEffect(() => {
+    fetchConversations();
+    // Refresh manual a cada X seg poderia ir aqui se nao tiver socket.
+  }, []);
+
+  // Busca Agentes quando a aba focar
+  useEffect(() => {
+    if (activeTab === 'agentes') {
+      fetchUsers();
+    }
+  }, [activeTab]);
+
+  const fetchUsers = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/users`);
+      setUsers(res.data);
+    } catch (err) {
+      console.error('Erro ao buscar agentes:', err);
+    }
+  };
+
+  const openAgentModal = (agent = null) => {
+    if (agent) {
+      setEditingAgent(agent);
+      setAgentForm({ name: agent.name, email: agent.email, password: '', role: agent.role, status: agent.status });
+    } else {
+      setEditingAgent(null);
+      setAgentForm({ name: '', email: '', password: '', role: 'AGENT', status: 'OFFLINE' });
+    }
+    setIsAgentModalOpen(true);
+  };
+
+  const handleSaveAgent = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingAgent) {
+        await axios.put(`${API_URL}/users/${editingAgent.id}`, agentForm);
+      } else {
+        await axios.post(`${API_URL}/users`, agentForm);
+      }
+      setIsAgentModalOpen(false);
+      fetchUsers();
+    } catch (err) {
+      alert('Erro ao salvar agente. (Verifique se o e-mail já existe)');
+    }
+  };
+
+  const handleDeleteAgent = async (id) => {
+    if (window.confirm("Certeza que deseja remover este agente?")) {
+      try {
+        await axios.delete(`${API_URL}/users/${id}`);
+        fetchUsers();
+      } catch (err) {
+        alert('Erro ao deletar agente. Ele pode já possuir histórico de conversas.');
+      }
+    }
+  };
 
   const fetchConversations = async () => {
     try {
@@ -169,6 +235,10 @@ export default function Dashboard() {
           <button className={`nav-item ${activeTab === 'contatos' ? 'active' : ''}`} onClick={() => setActiveTab('contatos')}>
             <Users size={20} />
             <span>Contatos</span>
+          </button>
+          <button className={`nav-item ${activeTab === 'agentes' ? 'active' : ''}`} onClick={() => setActiveTab('agentes')}>
+            <UserCog size={20} />
+            <span>Agentes</span>
           </button>
           <button className={`nav-item ${activeTab === 'conexoes' ? 'active' : ''}`} onClick={() => setActiveTab('conexoes')}>
             <Smartphone size={20} />
@@ -336,7 +406,95 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Fullscreen Image Modal */}
+        {/* Agentes Panel Area */}
+        {activeTab === 'agentes' && (
+          <div className="agents-panel">
+            <div className="panel-header glass-panel">
+              <div className="header-title">
+                <UserCog size={24} />
+                <h2>Gerenciamento de Agentes</h2>
+              </div>
+              <button className="btn-primary" onClick={() => openAgentModal()}><Plus size={16} /> Novo Agente</button>
+            </div>
+            
+            <div className="agents-list glass-panel">
+              <table className="agents-table">
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>E-mail</th>
+                    <th>Regra</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map(user => (
+                    <tr key={user.id}>
+                      <td>{user.name}</td>
+                      <td>{user.email}</td>
+                      <td><span className={`role-badge ${user.role.toLowerCase()}`}>{user.role === 'ADMIN' ? 'Admin' : 'Agente'}</span></td>
+                      <td><span className={`status-badge ${user.status.toLowerCase()}`}>{user.status}</span></td>
+                      <td className="actions-cell">
+                        <button className="icon-btn text-blue" title="Editar" onClick={() => openAgentModal(user)}><Edit size={18} /></button>
+                        <button className="icon-btn text-red" title="Excluir" onClick={() => handleDeleteAgent(user.id)}><Trash2 size={18} /></button>
+                      </td>
+                    </tr>
+                  ))}
+                  {users.length === 0 && (
+                    <tr><td colSpan="5" style={{textAlign: 'center', padding: '2rem'}}>Nenhum agente encontrado no banco de dados.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Modal Novo/Edição de Agente */}
+            {isAgentModalOpen && (
+              <div className="modal-overlay">
+                <div className="modal-content glass-panel animated-modal">
+                  <div className="modal-header">
+                    <h3>{editingAgent ? 'Editar Agente' : 'Novo Agente'}</h3>
+                    <button className="icon-btn" style={{color: 'var(--text-secondary)'}} onClick={() => setIsAgentModalOpen(false)}><X size={20} /></button>
+                  </div>
+                  <form onSubmit={handleSaveAgent} className="modal-form">
+                    <div className="form-group">
+                      <label>Nome Completo:</label>
+                      <input type="text" value={agentForm.name} onChange={e => setAgentForm({...agentForm, name: e.target.value})} required className="input-glass" placeholder="Ex: João Silva" />
+                    </div>
+                    <div className="form-group">
+                      <label>E-mail (Login):</label>
+                      <input type="email" value={agentForm.email} onChange={e => setAgentForm({...agentForm, email: e.target.value})} required className="input-glass" placeholder="Ex: joao@empresa.com" />
+                    </div>
+                    <div className="form-group">
+                      <label>Senha {editingAgent && <span className="text-muted" style={{fontSize: '0.8rem'}}>(Deixe em branco p/ não alterar)</span>}:</label>
+                      <input type="password" value={agentForm.password} onChange={e => setAgentForm({...agentForm, password: e.target.value})} required={!editingAgent} className="input-glass" placeholder="********" />
+                    </div>
+                    <div className="form-row" style={{display: 'flex', gap: '1rem'}}>
+                      <div className="form-group" style={{flex: 1}}>
+                        <label>Cargo/Regra:</label>
+                        <select value={agentForm.role} onChange={e => setAgentForm({...agentForm, role: e.target.value})} className="input-glass">
+                          <option value="AGENT">Atendente (Agente)</option>
+                          <option value="ADMIN">Administrador (Master)</option>
+                        </select>
+                      </div>
+                      <div className="form-group" style={{flex: 1}}>
+                        <label>Status:</label>
+                        <select value={agentForm.status} onChange={e => setAgentForm({...agentForm, status: e.target.value})} className="input-glass">
+                          <option value="OFFLINE">Offline</option>
+                          <option value="ONLINE">Online</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="modal-footer" style={{display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)'}}>
+                      <button type="button" className="btn-secondary" style={{background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-primary)'}} onClick={() => setIsAgentModalOpen(false)}>Cancelar</button>
+                      <button type="submit" className="btn-primary">Salvar Agente</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         {expandedImage && (
           <div className="fullscreen-image-modal" onClick={() => setExpandedImage(null)}>
             <div className="modal-close">X</div>
