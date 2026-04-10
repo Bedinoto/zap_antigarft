@@ -4,10 +4,13 @@ import { UazapiService } from '../services/uazapiService';
 
 const router = Router();
 
-// Endpoint para buscar todas as filas de conversas em andamento
+// Endpoint para buscar todas as filas de conversas em andamento (exceto CLOSED)
 router.get('/conversations', async (req, res) => {
   try {
     const conversations = await prisma.conversation.findMany({
+      where: { 
+        status: { not: 'CLOSED' }
+      },
       include: {
         contact: true,
         Messages: {
@@ -33,6 +36,33 @@ router.get('/conversations/:id/messages', async (req, res) => {
     res.json(messages);
   } catch (err) {
     res.status(500).json({ error: 'Erro ao buscar mensagens' });
+  }
+});
+
+// Aceitar atendimento (WAITING -> ACTIVE)
+router.patch('/conversations/:id/accept', async (req, res) => {
+  try {
+    const updated = await prisma.conversation.update({
+      where: { id: req.params.id },
+      data: { status: 'ACTIVE', updatedAt: new Date() },
+      include: { contact: true, instance: true }
+    });
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao aceitar atendimento' });
+  }
+});
+
+// Finalizar atendimento (qualquer -> CLOSED)
+router.patch('/conversations/:id/close', async (req, res) => {
+  try {
+    const updated = await prisma.conversation.update({
+      where: { id: req.params.id },
+      data: { status: 'CLOSED', updatedAt: new Date() }
+    });
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao finalizar atendimento' });
   }
 });
 

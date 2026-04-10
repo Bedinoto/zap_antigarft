@@ -717,3 +717,94 @@
 .text-muted {
   color: var(--text-muted);
 }
+
+/* Chat Header Actions - Aceitar / Finalizar */
+.btn-accept {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.35);
+}
+
+.btn-accept:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.btn-close-chat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35);
+}
+
+.btn-close-chat:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+/* Status badges no header */
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.status-badge.status-waiting {
+  background-color: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.status-badge.status-active {
+  background-color: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.status-badge.status-closed {
+  background-color: rgba(107, 114, 128, 0.2);
+  color: #9ca3af;
+  border: 1px solid rgba(107, 114, 128, 0.4);
+}
+
+/* Aviso de input bloqueado */
+.chat-blocked-notice {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.8rem 1.5rem;
+  background: rgba(0,0,0,0.15);
+  border-radius: 24px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+/* Altura estendida do chat header para acomodar botões */
+.chat-header {
+  min-height: 70px;
+  height: auto;
+  padding: 0.75rem 1.5rem;
+  gap: 1rem;
+}

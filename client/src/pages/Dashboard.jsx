@@ -202,12 +202,37 @@ export default function Dashboard() {
 
   const handleSelectChat = async (conv) => {
     setActiveChat(conv);
-    // Fetch History
     try {
       const res = await axios.get(`${API_URL}/conversations/${conv.id}/messages`);
       setMessages(res.data);
     } catch (err) {
       console.error('Erro ao buscar historico', err);
+    }
+  };
+
+  const handleAcceptChat = async () => {
+    if (!activeChat) return;
+    try {
+      const res = await axios.patch(`${API_URL}/conversations/${activeChat.id}/accept`);
+      setActiveChat(res.data);
+      // Atualiza na lista de conversas
+      setConversations(prev => prev.map(c => c.id === res.data.id ? { ...c, status: 'ACTIVE' } : c));
+    } catch (err) {
+      alert('Erro ao aceitar atendimento');
+    }
+  };
+
+  const handleCloseChat = async () => {
+    if (!activeChat) return;
+    if (!window.confirm('Finalizar este atendimento?')) return;
+    try {
+      await axios.patch(`${API_URL}/conversations/${activeChat.id}/close`);
+      // Remove da lista e fecha o chat
+      setConversations(prev => prev.filter(c => c.id !== activeChat.id));
+      setActiveChat(null);
+      setMessages([]);
+    } catch (err) {
+      alert('Erro ao finalizar atendimento');
     }
   };
 
@@ -378,8 +403,19 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div className="chat-actions">
-                    <button className="icon-btn"><Search size={20} /></button>
-                    <button className="icon-btn"><MoreVertical size={20} /></button>
+                    {activeChat.status === 'WAITING' && (
+                      <button className="btn-accept" onClick={handleAcceptChat} title="Aceitar Atendimento">
+                        ✅ Aceitar Atendimento
+                      </button>
+                    )}
+                    {activeChat.status === 'ACTIVE' && (
+                      <button className="btn-close-chat" onClick={handleCloseChat} title="Finalizar Atendimento">
+                        🔴 Finalizar
+                      </button>
+                    )}
+                    <span className={`status-badge status-${activeChat.status?.toLowerCase()}`}>
+                      {activeChat.status === 'WAITING' ? '⏳ Aguardando' : activeChat.status === 'ACTIVE' ? '🟢 Em Atendimento' : '⛔ Fechado'}
+                    </span>
                   </div>
                 </div>
 
@@ -429,35 +465,47 @@ export default function Dashboard() {
                 </div>
 
                 <div className="chat-input-area glass-panel">
-                  {attachment && (
-                    <div className="attachment-preview">
-                      <div className="preview-info">
-                        <Paperclip size={14} />
-                        <span>{attachment.name}</span>
-                      </div>
-                      <button className="remove-btn" onClick={() => setAttachment(null)}>X</button>
+                  {activeChat.status === 'WAITING' ? (
+                    <div className="chat-blocked-notice">
+                      <span>⏳ Clique em <strong>"Aceitar Atendimento"</strong> para começar a responder.</span>
                     </div>
+                  ) : activeChat.status === 'CLOSED' ? (
+                    <div className="chat-blocked-notice">
+                      <span>⛔ Este atendimento foi finalizado.</span>
+                    </div>
+                  ) : (
+                    <>
+                      {attachment && (
+                        <div className="attachment-preview">
+                          <div className="preview-info">
+                            <Paperclip size={14} />
+                            <span>{attachment.name}</span>
+                          </div>
+                          <button className="remove-btn" onClick={() => setAttachment(null)}>X</button>
+                        </div>
+                      )}
+                      <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        style={{display: 'none'}} 
+                        onChange={handleFileSelect}
+                      />
+                      <button className="icon-btn attachment-btn" title="Anexar Arquivo" onClick={() => fileInputRef.current.click()}>
+                        <Paperclip size={20} />
+                      </button>
+                      <input 
+                        type="text" 
+                        placeholder="Digite sua mensagem..." 
+                        className="message-input" 
+                        value={inputText}
+                        onChange={e => setInputText(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                      />
+                      <button className="btn-primary send-btn" onClick={handleSendMessage} disabled={!inputText.trim() && !attachment}>
+                        <Send size={18} />
+                      </button>
+                    </>
                   )}
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    style={{display: 'none'}} 
-                    onChange={handleFileSelect}
-                  />
-                  <button className="icon-btn attachment-btn" title="Anexar Arquivo" onClick={() => fileInputRef.current.click()}>
-                    <Paperclip size={20} />
-                  </button>
-                  <input 
-                    type="text" 
-                    placeholder="Digite sua mensagem (opcional se enviar anexo)..." 
-                    className="message-input" 
-                    value={inputText}
-                    onChange={e => setInputText(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                  />
-                  <button className="btn-primary send-btn" onClick={handleSendMessage} disabled={!inputText.trim() && !attachment}>
-                    <Send size={18} />
-                  </button>
                 </div>
               </div>
             ) : (
