@@ -125,8 +125,9 @@ export const handleUazapiWebhook = async (req: Request, res: Response): Promise<
           }
       }
 
+      let savedMessage = null;
       if (shouldSave) {
-          const savedMessage = await prisma.message.create({
+          savedMessage = await prisma.message.create({
             data: {
               conversationId: conversation.id,
               content: computedContent,
@@ -138,25 +139,26 @@ export const handleUazapiWebhook = async (req: Request, res: Response): Promise<
           });
       }
 
-      // Atualiza lastMessage da conversa
-      await prisma.conversation.update({
-        where: { id: conversation.id },
-        data: { lastMessage: textContent, updatedAt: new Date() }
-      });
+      // Atualiza lastMessage da conversa se houver msg
+      if (savedMessage) {
+          await prisma.conversation.update({
+            where: { id: conversation.id },
+            data: { lastMessage: computedContent, updatedAt: new Date() }
+          });
 
-      // 5. Manda para os clientes via Socket.io no Frontend
-      // Importante injetar a instância global do Socket ou passar nas variaveis app
-      if (global._io) {
-        global._io.emit('new_message', {
-          conversationId: conversation.id,
-          message: savedMessage,
-          contact: contact
-        });
+          // 5. Manda para os clientes via Socket.io no Frontend
+          if (global._io) {
+            global._io.emit('new_message', {
+              conversationId: conversation.id,
+              message: savedMessage,
+              contact: contact
+            });
 
-        // Se era a primeira mensagem, avisa que tem chat na fila
-        if (!msg.fromMe && conversation.status === 'WAITING') {
-          global._io.emit('queue_updated');
-        }
+            // Se era a primeira mensagem, avisa que tem chat na fila
+            if (!msg.fromMe && conversation.status === 'WAITING') {
+              global._io.emit('queue_updated');
+            }
+          }
       }
     }
 
