@@ -196,7 +196,9 @@ export default function Dashboard() {
   // --- CONVERSAS FUNÇÕES ---
   const fetchConversations = async () => {
     try {
-      const res = await axios.get(`${API_URL}/conversations`);
+      const res = await axios.get(`${API_URL}/conversations`, {
+        params: { userId: loggedUser.id, role: loggedUser.role }
+      });
       setConversations(res.data);
     } catch (err) {
       console.error('Erro buscando conversas', err);
@@ -216,10 +218,12 @@ export default function Dashboard() {
   const handleAcceptChat = async () => {
     if (!activeChat) return;
     try {
-      const res = await axios.patch(`${API_URL}/conversations/${activeChat.id}/accept`);
+      const res = await axios.patch(`${API_URL}/conversations/${activeChat.id}/accept`, {
+        userId: loggedUser.id
+      });
       setActiveChat(res.data);
-      // Atualiza na lista de conversas
-      setConversations(prev => prev.map(c => c.id === res.data.id ? { ...c, status: 'ACTIVE' } : c));
+      // Atualiza na lista: remove de outros agentes (status ACTIVE + userId deles)
+      fetchConversations();
     } catch (err) {
       alert('Erro ao aceitar atendimento');
     }
@@ -370,7 +374,7 @@ export default function Dashboard() {
                 {conversations.map(conv => (
                   <div 
                     key={conv.id} 
-                    className={`conversation-item ${activeChat?.id === conv.id ? 'active' : ''}`} 
+                    className={`conversation-item ${activeChat?.id === conv.id ? 'active' : ''} ${conv.status === 'WAITING' ? 'conv-waiting' : ''}`} 
                     onClick={() => handleSelectChat(conv)}
                   >
                     <div className="avatar bg-alt">{conv.contact?.name?.charAt(0).toUpperCase() || 'C'}</div>
@@ -382,7 +386,11 @@ export default function Dashboard() {
                       <div className="conversation-bottom">
                         <span className={`last-message ${conv.status === 'WAITING' ? 'unread' : ''}`}>
                           {conv.status === 'WAITING' ? (
-                            <span style={{color: 'var(--warning)'}}>Aguarda Atendimento: {conv.lastMessage}</span>
+                            <span style={{color: 'var(--warning)'}}>⏳ Aguarda Atendimento</span>
+                          ) : conv.status === 'ACTIVE' ? (
+                            <span style={{color: '#22c55e'}}>
+                              🟢 {conv.user?.name ? `Atendido por ${conv.user.name}` : conv.lastMessage || 'Em Atendimento'}
+                            </span>
                           ) : (
                             <>
                               <CheckCheck size={14} className="read-status text-blue" />

@@ -27,15 +27,30 @@ router.post('/auth/login', async (req, res) => {
 });
 
 
-// Endpoint para buscar todas as filas de conversas em andamento (exceto CLOSED)
+// Endpoint para buscar filas de conversas (filtro por role do agente)
 router.get('/conversations', async (req, res) => {
+  const { userId, role } = req.query as { userId?: string; role?: string };
+
   try {
+    let whereClause: any = { status: { not: 'CLOSED' } };
+
+    // Agente comum: vê apenas WAITING (fila geral) OU conversas que ele próprio aceitou
+    if (role === 'AGENT' && userId) {
+      whereClause = {
+        status: { not: 'CLOSED' },
+        OR: [
+          { status: 'WAITING' },
+          { userId: userId }
+        ]
+      };
+    }
+    // ADMIN: vê tudo que não está CLOSED (sem filtro adicional)
+
     const conversations = await prisma.conversation.findMany({
-      where: { 
-        status: { not: 'CLOSED' }
-      },
+      where: whereClause,
       include: {
         contact: true,
+        user: { select: { id: true, name: true } },
         Messages: {
           orderBy: { createdAt: 'desc' },
           take: 1
@@ -62,13 +77,26 @@ router.get('/conversations/:id/messages', async (req, res) => {
   }
 });
 
-// Aceitar atendimento (WAITING -> ACTIVE)
+// Aceitar atendimento (WAITING -> ACTIVE) — salva o agente responsável
 router.patch('/conversations/:id/accept', async (req, res) => {
+  const { userId } = req.body;
   try {
+    // Busca nome do agente
+    let agentName = 'Agente';
+    if (userId) {
+      const agent = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+      if (agent) agentName = agent.name;
+    }
+
     const updated = await prisma.conversation.update({
       where: { id: req.params.id },
-      data: { status: 'ACTIVE', updatedAt: new Date() },
-      include: { contact: true, instance: true }
+      data: {
+        status: 'ACTIVE',
+        userId: userId || null,
+        lastMessage: `Atendido por ${agentName}`,
+        updatedAt: new Date()
+      },
+      include: { contact: true, instance: true, user: { select: { id: true, name: true } } }
     });
     res.json(updated);
   } catch (err) {
