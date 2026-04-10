@@ -96,6 +96,9 @@ export const handleUazapiWebhook = async (req: Request, res: Response): Promise<
              } else if (msg.mediaType === 'image' && msg.content?.JPEGThumbnail) {
                 finalMediaUrl = `data:image/jpeg;base64,${msg.content.JPEGThumbnail}`; // Fallback pra miniatura
              }
+         }
+      }
+
       const theMediaName = msg.fileName || msg.content?.documentFileName || msg.content?.fileName || msg.content?.title || msg.content?.name || null;
       const computedContent = textContent || (finalType === 'AUDIO' ? '🎵 [Áudio]' : finalType === 'VIDEO' ? '🎥 [Vídeo]' : finalType === 'DOCUMENT' ? (theMediaName || '📄 [Documento]') : undefined);
 
