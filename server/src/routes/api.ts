@@ -4,6 +4,29 @@ import { UazapiService } from '../services/uazapiService';
 
 const router = Router();
 
+// ---------------------------
+// AUTENTICAÇÃO
+// ---------------------------
+router.post('/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user || user.password !== password) {
+      return res.status(401).json({ error: 'E-mail ou senha incorretos.' });
+    }
+
+    // Atualiza status para ONLINE
+    await prisma.user.update({ where: { id: user.id }, data: { status: 'ONLINE' } });
+
+    const { password: _, ...safeUser } = user;
+    res.json({ user: safeUser });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro interno ao autenticar' });
+  }
+});
+
+
 // Endpoint para buscar todas as filas de conversas em andamento (exceto CLOSED)
 router.get('/conversations', async (req, res) => {
   try {

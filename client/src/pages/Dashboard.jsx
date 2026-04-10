@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
+import { useNavigate } from 'react-router-dom';
 import { 
   MessageSquare, Users, Smartphone, Settings, BarChart2, 
   Search, Send, Paperclip, MoreVertical, LogOut, Check, CheckCheck, 
@@ -13,6 +14,8 @@ const API_URL = isProd ? 'https://zap-api-fq2p.onrender.com/api' : 'http://local
 const SOCKET_URL = isProd ? 'https://zap-api-fq2p.onrender.com' : 'http://localhost:3001';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+  const loggedUser = JSON.parse(localStorage.getItem('crm_user') || '{}');
   const [activeTab, setActiveTab] = useState('conversas');
   
   // Data State
@@ -333,12 +336,15 @@ export default function Dashboard() {
 
         <div className="sidebar-footer">
           <div className="user-profile">
-            <div className="avatar">A</div>
+            <div className="avatar">{loggedUser.name?.charAt(0)?.toUpperCase() || 'A'}</div>
             <div className="user-info">
-              <span className="user-name">Administrador Geral</span>
+              <span className="user-name">{loggedUser.name || 'Administrador'}</span>
               <span className="user-status">Online</span>
             </div>
-            <button className="logout-btn" title="Sair"><LogOut size={16} /></button>
+            <button className="logout-btn" title="Sair" onClick={() => {
+              localStorage.removeItem('crm_user');
+              navigate('/login');
+            }}><LogOut size={16} /></button>
           </div>
         </div>
       </aside>

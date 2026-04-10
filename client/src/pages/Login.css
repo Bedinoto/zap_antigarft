@@ -124,3 +124,15 @@
   50% { transform: translateY(-20px) scale(1.05); }
   100% { transform: translateY(0) scale(1); }
 }
+
+.login-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+}

@@ -1,17 +1,32 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, ArrowRight } from 'lucide-react';
+import { Lock, Mail, ArrowRight, AlertCircle } from 'lucide-react';
 import './Login.css';
+
+const isProd = window.location.hostname !== 'localhost';
+const API_URL = isProd ? 'https://zap-api-fq2p.onrender.com/api' : 'http://localhost:3001/api';
 
 export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // TODO: Connect to backend auth
-    navigate('/');
+    setError('');
+    setLoading(true);
+    try {
+      const res = await axios.post(`${API_URL}/auth/login`, { email, password });
+      localStorage.setItem('crm_user', JSON.stringify(res.data.user));
+      navigate('/');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Falha ao conectar com o servidor.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -30,6 +45,13 @@ export default function Login() {
         </div>
 
         <form onSubmit={handleLogin} className="login-form">
+          {error && (
+            <div className="login-error">
+              <AlertCircle size={16} />
+              <span>{error}</span>
+            </div>
+          )}
+
           <div className="input-group">
             <label>E-mail</label>
             <div className="input-wrapper">
@@ -60,9 +82,9 @@ export default function Login() {
             </div>
           </div>
 
-          <button type="submit" className="btn-primary login-btn">
-            Entrar no Sistema
-            <ArrowRight size={18} />
+          <button type="submit" className="btn-primary login-btn" disabled={loading}>
+            {loading ? 'Entrando...' : 'Entrar no Sistema'}
+            {!loading && <ArrowRight size={18} />}
           </button>
         </form>
       </div>
