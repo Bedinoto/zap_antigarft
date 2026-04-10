@@ -466,7 +466,9 @@ export default function Dashboard() {
                           </div>
                         )}
                         {msg.type !== 'AUDIO' && msg.type !== 'VIDEO' && msg.type !== 'IMAGE' && msg.type !== 'DOCUMENT' && msg.content}
-                        {(msg.type === 'IMAGE' || msg.type === 'AUDIO' || msg.type === 'VIDEO' || msg.type === 'DOCUMENT') && msg.content && (
+                        {(msg.type === 'IMAGE' || msg.type === 'AUDIO' || msg.type === 'VIDEO' || msg.type === 'DOCUMENT') && 
+                          msg.content && 
+                          !['[Mídia]', '🎵 [Áudio]', '🎵 [Áudio enviado]'].includes(msg.content) && (
                            <div className="media-caption">{msg.content}</div>
                         )}
                         

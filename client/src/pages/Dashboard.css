@@ -328,7 +328,7 @@
 }
 
 .message {
-  max-width: 70%;
+  max-width: 85%;
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
@@ -443,13 +443,15 @@
 
 .message-audio-container {
   margin-bottom: 8px;
-  max-width: 280px;
+  min-width: 300px;
+  max-width: 100%;
 }
 
 .chat-audio-player {
-  height: 40px;
+  height: 48px;
   width: 100%;
   outline: none;
+  border-radius: 24px;
 }
 
 .chat-video-player {
