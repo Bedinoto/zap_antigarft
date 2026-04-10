@@ -175,6 +175,7 @@ export default function Dashboard() {
         text: textToSend,
         mediaBase64: currentAttachment ? currentAttachment.base64 : null,
         mediaType: currentAttachment ? currentAttachment.type : null,
+        mediaName: currentAttachment ? currentAttachment.name : null,
         userId: 'admin-init-12345'
       });
     } catch (err) {

@@ -96,21 +96,47 @@ export const handleUazapiWebhook = async (req: Request, res: Response): Promise<
              } else if (msg.mediaType === 'image' && msg.content?.JPEGThumbnail) {
                 finalMediaUrl = `data:image/jpeg;base64,${msg.content.JPEGThumbnail}`; // Fallback pra miniatura
              }
-         }
+      const theMediaName = msg.fileName || msg.content?.documentFileName || msg.content?.fileName || msg.content?.title || msg.content?.name || null;
+      const computedContent = textContent || (finalType === 'AUDIO' ? '🎵 [Áudio]' : finalType === 'VIDEO' ? '🎥 [Vídeo]' : finalType === 'DOCUMENT' ? (theMediaName || '📄 [Documento]') : undefined);
+
+      // --- DEDUPLICADOR ANTI-ECHO ---
+      // Se a mensagem for enviada por nós (fromMe: true), pode ser apenas um ECO da nossa própria API
+      let shouldSave = true;
+      if (msg.fromMe) {
+          const recentMessage = await prisma.message.findFirst({
+              where: {
+                  conversationId: conversation.id,
+                  fromMe: true,
+                  createdAt: { gte: new Date(Date.now() - 15000) } // ultimos 15 segundos
+              },
+              orderBy: { createdAt: 'desc' }
+          });
+
+          if (recentMessage) {
+              // Se foi texto repetido, ou se foi mídia genérica repetida num intervalo curto, ignorar.
+              if (
+                 recentMessage.content === computedContent || 
+                 (finalType !== 'TEXT' && recentMessage.type === finalType) ||
+                 (finalType === 'TEXT' && computedContent === '📎 [Mídia]' && recentMessage.type === 'DOCUMENT')
+              ) {
+                  shouldSave = false;
+                  console.log('[WEBHOOK uazapiGO] Ignorando ECO gerado pela nossa própria API.');
+              }
+          }
       }
 
-      const theMediaName = msg.fileName || msg.content?.documentFileName || msg.content?.fileName || msg.content?.title || msg.content?.name || null;
-
-      const savedMessage = await prisma.message.create({
-        data: {
-          conversationId: conversation.id,
-          content: textContent || (finalType === 'AUDIO' ? '🎵 [Áudio]' : finalType === 'VIDEO' ? '🎥 [Vídeo]' : finalType === 'DOCUMENT' ? (theMediaName || '📄 [Documento]') : undefined),
-          fromMe: msg.fromMe || false,
-          type: finalType,
-          mediaUrl: finalMediaUrl,
-          mediaName: theMediaName
-        }
-      });
+      if (shouldSave) {
+          const savedMessage = await prisma.message.create({
+            data: {
+              conversationId: conversation.id,
+              content: computedContent,
+              fromMe: msg.fromMe || false,
+              type: finalType,
+              mediaUrl: finalMediaUrl,
+              mediaName: theMediaName
+            }
+          });
+      }
 
       // Atualiza lastMessage da conversa
       await prisma.conversation.update({
