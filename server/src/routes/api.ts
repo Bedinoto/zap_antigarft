@@ -57,9 +57,8 @@ router.post('/messages/send', async (req, res) => {
         conversation.contact.phoneNumber,
         mediaBase64,
         text, // caption
-        mediaType || "image"
-        // NOTA: Em versões estendidas a Uazapi aceita o parameter 'fileName' na requisição sendMedia.
-        // Opcional: ajustar sendMedia futuramente se necessário enviar com nome final.
+        mediaType || "image",
+        mediaName // <--- Agora repassa o nome oficial do arquivo pro Zap!
       );
     } else {
       await UazapiService.sendText(

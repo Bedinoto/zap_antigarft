@@ -32,14 +32,22 @@ export const UazapiService = {
   },
 
   // Enviar Arquivo/Imagem (em Base64)
-  sendMedia: async (instanceName: string, number: string, base64: string, caption: string, extName: string = 'image') => {
+  sendMedia: async (instanceName: string, number: string, base64: string, caption: string, extName: string = 'image', fileName?: string) => {
     try {
-      const response = await api.post(`/send/media`, {
+      const payload: any = {
         number: number,
         type: extName, // "image", "document", "audio", "video"
         text: caption || "",
         file: base64
-      });
+      };
+      
+      if (fileName && extName.toLowerCase() === 'document') {
+         payload.docName = fileName;
+      } else if (fileName) {
+         payload.fileName = fileName; // Falback for other types if they support it
+      }
+
+      const response = await api.post(`/send/media`, payload);
       return response.data;
     } catch (error: any) {
       console.error(`Erro ao enviar midia uazapi:`, error.response?.data || error.message);
