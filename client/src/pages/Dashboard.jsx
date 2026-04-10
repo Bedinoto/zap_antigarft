@@ -282,27 +282,17 @@ export default function Dashboard() {
             <span>Dashboard</span>
           </button>
           <button className={`nav-item ${activeTab === 'conversas' ? 'active' : ''}`} onClick={() => setActiveTab('conversas')}>
-          <button 
-            className={`nav-btn ${activeTab === 'conversas' ? 'active' : ''}`}
-            onClick={() => setActiveTab('conversas')}
-            title="Conversas"
-          >
-            <MessageSquare size={24} />
+            <MessageSquare size={20} />
             <span>Conversas</span>
             {conversations.filter(c => c.status === 'WAITING').length > 0 && (
               <span className="badge">{conversations.filter(c => c.status === 'WAITING').length}</span>
             )}
           </button>
-          <button 
-            className={`nav-btn ${activeTab === 'contatos' ? 'active' : ''}`}
-            onClick={() => setActiveTab('contatos')}
-            title="Contatos"
-          >
-            <Users size={24} />
+          <button className={`nav-item ${activeTab === 'contatos' ? 'active' : ''}`} onClick={() => setActiveTab('contatos')}>
+            <Users size={20} />
             <span>Contatos</span>
           </button>
-          <button 
-            className={`nav-btn ${activeTab === 'agentes' ? 'active' : ''}`} onClick={() => setActiveTab('agentes')}>
+          <button className={`nav-item ${activeTab === 'agentes' ? 'active' : ''}`} onClick={() => setActiveTab('agentes')}>
             <UserCog size={20} />
             <span>Agentes</span>
           </button>
