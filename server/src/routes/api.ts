@@ -192,4 +192,112 @@ router.delete('/users/:id', async (req, res) => {
   }
 });
 
+// ---------------------------
+// ROTAS DE GERENCIAMENTO DE CONTATOS
+// ---------------------------
+
+// Listar Contatos
+router.get('/contacts', async (req, res) => {
+  try {
+    const contacts = await prisma.contact.findMany({
+      orderBy: { updatedAt: 'desc' }
+    });
+    res.json(contacts);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar contatos' });
+  }
+});
+
+// Criar Contato
+router.post('/contacts', async (req, res) => {
+  let { name, phoneNumber } = req.body;
+  try {
+    // Basic formatting for phone
+    phoneNumber = phoneNumber?.replace(/\D/g, ''); 
+    if (!phoneNumber) return res.status(400).json({ error: 'Telefone inválido' });
+
+    const existing = await prisma.contact.findUnique({ where: { phoneNumber } });
+    if (existing) {
+      return res.status(400).json({ error: 'Contato já cadastrado com este número.' });
+    }
+
+    const contact = await prisma.contact.create({
+      data: { name: name || 'Desconhecido', phoneNumber }
+    });
+    res.status(201).json(contact);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao criar contato' });
+  }
+});
+
+
+// Iniciar Conversa ativamente (Start-Chat)
+router.post('/contacts/:id/start-chat', async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const contact = await prisma.contact.findUnique({ where: { id } });
+    if (!contact) return res.status(404).json({ error: 'Contato não encontrado' });
+
+    // Pega a primeira instância conectada
+    const defaultInstance = await prisma.instance.findFirst();
+    if (!defaultInstance) return res.status(400).json({ error: 'Nenhuma instância configurada/conectada para abrir chat' });
+
+    // Verifica se já existe conversa
+    let conversation = await prisma.conversation.findFirst({
+      where: { contactId: id, instanceId: defaultInstance.id }
+    });
+
+    if (!conversation) {
+      conversation = await prisma.conversation.create({
+        data: {
+          contactId: id,
+          instanceId: defaultInstance.id,
+          status: 'ACTIVE',
+          lastMessage: '📝 Chat iniciado ativamente'
+        },
+        include: { contact: true, instance: true }
+      });
+    } else {
+      // Se estava CLOSED ou WAITING, vira ACTIVE
+      conversation = await prisma.conversation.update({
+        where: { id: conversation.id },
+        data: { status: 'ACTIVE', updatedAt: new Date() },
+        include: { contact: true, instance: true }
+      });
+    }
+
+    res.json(conversation);
+  } catch (err) {
+    res.status(500).json({ error: 'Falha ao iniciar conversa via backend' });
+  }
+});
+
+// Editar Contato
+router.put('/contacts/:id', async (req, res) => {
+  const { id } = req.params;
+  const { name, phoneNumber } = req.body;
+  try {
+    const limpo = phoneNumber?.replace(/\D/g, '');
+    const up = await prisma.contact.update({
+      where: { id },
+      data: { name, phoneNumber: limpo }
+    });
+    res.json(up);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao atualizar contato' });
+  }
+});
+
+// Excluir Contato
+router.delete('/contacts/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await prisma.contact.delete({ where: { id } });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao excluir contato (já pode estar atrelado a conversas)' });
+  }
+});
+
 export default router;

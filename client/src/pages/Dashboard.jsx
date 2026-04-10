@@ -31,6 +31,12 @@ export default function Dashboard() {
   const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState(null);
   const [agentForm, setAgentForm] = useState({ name: '', email: '', password: '', role: 'AGENT', status: 'OFFLINE' });
+
+  // Contacts State
+  const [contacts, setContacts] = useState([]);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [editingContact, setEditingContact] = useState(null);
+  const [contactForm, setContactForm] = useState({ name: '', phoneNumber: '' });
   
   // Socket State
   const [socket, setSocket] = useState(null);
@@ -83,10 +89,12 @@ export default function Dashboard() {
     // Refresh manual a cada X seg poderia ir aqui se nao tiver socket.
   }, []);
 
-  // Busca Agentes quando a aba focar
+  // Busca Agentes ou Contatos quando a aba focar
   useEffect(() => {
     if (activeTab === 'agentes') {
       fetchUsers();
+    } else if (activeTab === 'contatos') {
+      fetchContacts();
     }
   }, [activeTab]);
 
@@ -136,6 +144,53 @@ export default function Dashboard() {
     }
   };
 
+  // --- CONTATOS FUNÇÕES ---
+  const fetchContacts = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/contacts`);
+      setContacts(res.data);
+    } catch (err) {
+      console.error('Erro ao buscar contatos:', err);
+    }
+  };
+
+  const handleSaveContact = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingContact) {
+        await axios.put(`${API_URL}/contacts/${editingContact.id}`, contactForm);
+      } else {
+        await axios.post(`${API_URL}/contacts`, contactForm);
+      }
+      setIsContactModalOpen(false);
+      fetchContacts();
+    } catch (err) {
+      alert('Erro ao salvar contato. (Verifique se o número de telefone já existe)');
+    }
+  };
+
+  const handleDeleteContact = async (id) => {
+    if (window.confirm("Certeza que deseja remover este contato?")) {
+      try {
+        await axios.delete(`${API_URL}/contacts/${id}`);
+        fetchContacts();
+      } catch (err) {
+        alert('Erro ao deletar contato. Ele pode já possuir histórico de conversas.');
+      }
+    }
+  };
+
+  const handleStartConversation = async (contact) => {
+    try {
+      const res = await axios.post(`${API_URL}/contacts/${contact.id}/start-chat`);
+      setActiveTab('conversas');
+      handleSelectChat(res.data);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Erro ao iniciar conversa');
+    }
+  };
+
+  // --- CONVERSAS FUNÇÕES ---
   const fetchConversations = async () => {
     try {
       const res = await axios.get(`${API_URL}/conversations`);
@@ -227,17 +282,27 @@ export default function Dashboard() {
             <span>Dashboard</span>
           </button>
           <button className={`nav-item ${activeTab === 'conversas' ? 'active' : ''}`} onClick={() => setActiveTab('conversas')}>
-            <MessageSquare size={20} />
+          <button 
+            className={`nav-btn ${activeTab === 'conversas' ? 'active' : ''}`}
+            onClick={() => setActiveTab('conversas')}
+            title="Conversas"
+          >
+            <MessageSquare size={24} />
             <span>Conversas</span>
             {conversations.filter(c => c.status === 'WAITING').length > 0 && (
               <span className="badge">{conversations.filter(c => c.status === 'WAITING').length}</span>
             )}
           </button>
-          <button className={`nav-item ${activeTab === 'contatos' ? 'active' : ''}`} onClick={() => setActiveTab('contatos')}>
-            <Users size={20} />
+          <button 
+            className={`nav-btn ${activeTab === 'contatos' ? 'active' : ''}`}
+            onClick={() => setActiveTab('contatos')}
+            title="Contatos"
+          >
+            <Users size={24} />
             <span>Contatos</span>
           </button>
-          <button className={`nav-item ${activeTab === 'agentes' ? 'active' : ''}`} onClick={() => setActiveTab('agentes')}>
+          <button 
+            className={`nav-btn ${activeTab === 'agentes' ? 'active' : ''}`} onClick={() => setActiveTab('agentes')}>
             <UserCog size={20} />
             <span>Agentes</span>
           </button>
@@ -415,6 +480,67 @@ export default function Dashboard() {
           </div>
         )}
 
+      {/* TELA: CONTATOS */}
+      {activeTab === 'contatos' && (
+        <div className="agents-panel glass-panel">
+          <div className="agents-header">
+            <h2>Gerenciamento de Contatos</h2>
+            <button className="btn-primary" onClick={() => {
+              setEditingContact(null);
+              setContactForm({ name: '', phoneNumber: '' });
+              setIsContactModalOpen(true);
+            }}>
+              <Plus size={18} /> Novo Contato
+            </button>
+          </div>
+
+          <div className="table-responsive">
+            <table className="agents-table">
+              <thead>
+                <tr>
+                  <th>Avatar</th>
+                  <th>Nome do Cliente</th>
+                  <th>Telefone (WhatsApp)</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {contacts.length === 0 ? (
+                  <tr><td colSpan="4" style={{textAlign:'center', padding:'2rem'}}>Nenhum contato encontrado.</td></tr>
+                ) : contacts.map(c => (
+                  <tr key={c.id}>
+                    <td>
+                      <div className="avatar bg-alt">
+                        {c.name ? c.name.charAt(0).toUpperCase() : 'C'}
+                      </div>
+                    </td>
+                    <td><span className="agent-name">{c.name || 'Desconhecido'}</span></td>
+                    <td>{c.phoneNumber}</td>
+                    <td>
+                      <div className="actions-cell">
+                        <button className="btn-chat-start" onClick={() => handleStartConversation(c)} title="Iniciar Chat Exclusivo">
+                          <MessageSquare size={16} /> Chamar
+                        </button>
+                        <button className="icon-btn" onClick={() => {
+                          setEditingContact(c);
+                          setContactForm({ name: c.name || '', phoneNumber: c.phoneNumber });
+                          setIsContactModalOpen(true);
+                        }} title="Editar">
+                          <Edit size={18} className="text-blue" />
+                        </button>
+                        <button className="icon-btn" onClick={() => handleDeleteContact(c.id)} title="Excluir">
+                          <Trash2 size={18} className="text-danger" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
         {/* Agentes Panel Area */}
         {activeTab === 'agentes' && (
           <div className="agents-panel">
@@ -504,6 +630,53 @@ export default function Dashboard() {
             )}
           </div>
         )}
+
+      {/* Modal Criar/Editar Contato */}
+      {isContactModalOpen && (
+        <div className="modal-overlay">
+          <div className="agent-modal glass-panel">
+            <div className="modal-header">
+              <h2>{editingContact ? 'Editar Contato' : 'Adicionar Novo Contato'}</h2>
+              <button className="close-btn icon-btn" onClick={() => setIsContactModalOpen(false)}>
+                <X size={24} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSaveContact} className="agent-form">
+              <div className="form-group">
+                <label>Nome do Cliente / Empresa</label>
+                <input 
+                  type="text" 
+                  value={contactForm.name} 
+                  onChange={(e) => setContactForm({...contactForm, name: e.target.value})}
+                  placeholder="Ex: João da Silva"
+                  className="input-glass"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>WhatsApp (com DDI e DDD)</label>
+                <input 
+                  type="text" 
+                  value={contactForm.phoneNumber} 
+                  onChange={(e) => setContactForm({...contactForm, phoneNumber: e.target.value})}
+                  required
+                  placeholder="Ex: 5511999999999"
+                  className="input-glass"
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button type="button" className="btn-secondary" onClick={() => setIsContactModalOpen(false)}>Cancelar</button>
+                <button type="submit" className="btn-primary">
+                  {editingContact ? 'Salvar Alterações' : 'Salvar Contato'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
         {expandedImage && (
           <div className="fullscreen-image-modal" onClick={() => setExpandedImage(null)}>
             <div className="modal-close">X</div>
