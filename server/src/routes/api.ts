@@ -50,6 +50,31 @@ router.post('/messages/send', async (req, res) => {
       return res.status(404).json({ error: 'Conversa não encontrada' });
     }
 
+    let dbType = 'TEXT';
+    let label = '';
+    if (mediaBase64) {
+       const mappedType = mediaType ? mediaType.toUpperCase() : 'IMAGE'; // IMAGE, AUDIO, VIDEO, DOCUMENT
+       dbType = mappedType === 'IMAGE' || mappedType === 'AUDIO' || mappedType === 'VIDEO' || mappedType === 'DOCUMENT' ? mappedType : 'IMAGE';
+       
+       if (dbType === 'IMAGE') label = '📷 [Imagem enviada]';
+       else if (dbType === 'AUDIO') label = '🎵 [Áudio enviado]';
+       else if (dbType === 'VIDEO') label = '🎥 [Vídeo enviado]';
+       else if (dbType === 'DOCUMENT') label = mediaName || '📄 [Documento enviado]';
+       else label = '📎 [Mídia enviada]';
+    }
+
+    // Salva a mensagem no Banco proativo (Optimistic Save) ANTES de disparar para evitar race-conditions com o Webhook
+    const message = await prisma.message.create({
+      data: {
+        conversationId,
+        fromMe: true,
+        content: text || label,
+        type: dbType,
+        mediaUrl: mediaBase64 || null,
+        mediaName: mediaName || null
+      }
+    });
+
     // Dispara para a API Externa
     if (mediaBase64) {
       await UazapiService.sendMedia(
@@ -67,31 +92,6 @@ router.post('/messages/send', async (req, res) => {
         text
       );
     }
-
-    let dbType = 'TEXT';
-    let label = '';
-    if (mediaBase64) {
-       const mappedType = mediaType ? mediaType.toUpperCase() : 'IMAGE'; // IMAGE, AUDIO, VIDEO, DOCUMENT
-       dbType = mappedType === 'IMAGE' || mappedType === 'AUDIO' || mappedType === 'VIDEO' || mappedType === 'DOCUMENT' ? mappedType : 'IMAGE';
-       
-       if (dbType === 'IMAGE') label = '📷 [Imagem enviada]';
-       else if (dbType === 'AUDIO') label = '🎵 [Áudio enviado]';
-       else if (dbType === 'VIDEO') label = '🎥 [Vídeo enviado]';
-       else if (dbType === 'DOCUMENT') label = mediaName || '📄 [Documento enviado]';
-       else label = '📎 [Mídia enviada]';
-    }
-
-    // Salva a mensagem no Banco como enviada por nós
-    const message = await prisma.message.create({
-      data: {
-        conversationId,
-        fromMe: true,
-        content: text || label,
-        type: dbType,
-        mediaUrl: mediaBase64 || null,
-        mediaName: mediaName || null
-      }
-    });
 
     // Atualiza status da conversa caso estivesse WAITING para ACTIVE
     const summaryText = text || label;
