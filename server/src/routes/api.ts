@@ -67,19 +67,32 @@ router.post('/messages/send', async (req, res) => {
       );
     }
 
+    let dbType = 'TEXT';
+    let label = '';
+    if (mediaBase64) {
+       const mappedType = mediaType ? mediaType.toUpperCase() : 'IMAGE'; // IMAGE, AUDIO, VIDEO, DOCUMENT
+       dbType = mappedType === 'IMAGE' || mappedType === 'AUDIO' || mappedType === 'VIDEO' || mappedType === 'DOCUMENT' ? mappedType : 'IMAGE';
+       
+       if (dbType === 'IMAGE') label = '📷 [Imagem enviada]';
+       else if (dbType === 'AUDIO') label = '🎵 [Áudio enviado]';
+       else if (dbType === 'VIDEO') label = '🎥 [Vídeo enviado]';
+       else if (dbType === 'DOCUMENT') label = '📄 [Documento enviado]';
+       else label = '📎 [Mídia enviada]';
+    }
+
     // Salva a mensagem no Banco como enviada por nós
     const message = await prisma.message.create({
       data: {
         conversationId,
         fromMe: true,
-        content: text || (mediaType === "image" ? "📷 [Imagem enviada]" : "📎 [Mídia enviada]"),
-        type: mediaBase64 ? 'IMAGE' : 'TEXT',
+        content: text || label,
+        type: dbType,
         mediaUrl: mediaBase64 || null
       }
     });
 
     // Atualiza status da conversa caso estivesse WAITING para ACTIVE
-    const summaryText = text || (mediaType === "image" ? "📷 [Imagem enviada]" : "📎 [Mídia enviada]");
+    const summaryText = text || label;
     await prisma.conversation.update({
       where: { id: conversationId },
       data: { status: 'ACTIVE', userId, lastMessage: summaryText, updatedAt: new Date() }

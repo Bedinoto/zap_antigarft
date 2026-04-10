@@ -351,8 +351,16 @@ export default function Dashboard() {
                             <video controls src={msg.mediaUrl} className="chat-video-player" />
                           </div>
                         )}
-                        {msg.type !== 'AUDIO' && msg.type !== 'VIDEO' && msg.type !== 'IMAGE' && msg.content}
-                        {(msg.type === 'IMAGE' || msg.type === 'AUDIO' || msg.type === 'VIDEO') && msg.content && (
+                        {msg.type === 'DOCUMENT' && msg.mediaUrl && (
+                          <div className="message-document-container">
+                            <a href={msg.mediaUrl} download={`documento_${msg.id.substring(0,6)}`} className="btn-document-download">
+                              <Paperclip size={16} />
+                              Baixar Documento
+                            </a>
+                          </div>
+                        )}
+                        {msg.type !== 'AUDIO' && msg.type !== 'VIDEO' && msg.type !== 'IMAGE' && msg.type !== 'DOCUMENT' && msg.content}
+                        {(msg.type === 'IMAGE' || msg.type === 'AUDIO' || msg.type === 'VIDEO' || msg.type === 'DOCUMENT') && msg.content && (
                            <div className="media-caption">{msg.content}</div>
                         )}
                         

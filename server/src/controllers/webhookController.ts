@@ -85,7 +85,7 @@ export const handleUazapiWebhook = async (req: Request, res: Response): Promise<
       if (msg.mediaType && mediaTypesMap[msg.mediaType]) {
          finalType = mediaTypesMap[msg.mediaType];
          
-         if (['image', 'audio', 'ptt', 'video'].includes(msg.mediaType)) {
+         if (['image', 'audio', 'ptt', 'video', 'document'].includes(msg.mediaType)) {
              // Tentar baixar da API da Uazapi!
              // Uazapi converte audio para mp3 por padrao (generate_mp3=true internamente ou na API)
              // msg.messageid || msg.id protege caso o schema do uazapi variar

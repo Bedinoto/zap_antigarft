@@ -460,6 +460,30 @@
   outline: none;
 }
 
+.message-document-container {
+  margin-bottom: 8px;
+}
+
+.btn-document-download {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--primary);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  width: fit-content;
+}
+
+.btn-document-download:hover {
+  background-color: var(--primary-dark);
+  filter: brightness(1.1);
+}
+
 .media-caption {
   font-size: 0.9em;
   margin-top: 4px;
