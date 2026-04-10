@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
+import { UazapiService } from '../services/uazapiService';
 
 export const handleUazapiWebhook = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -49,27 +50,38 @@ export const handleUazapiWebhook = async (req: Request, res: Response): Promise<
          });
       }
 
-      // 3. Acha ou Cria a Conversa na Fila "WAITING"
+      // 3. Acha a Conversa (por contato e instância)
       let conversation = await prisma.conversation.findFirst({
         where: {
           contactId: contact.id,
+          instanceId: instanceInfo.id
         },
         orderBy: { updatedAt: 'desc' }
       });
 
-      if (!conversation || conversation.status === 'CLOSED') {
+      if (!conversation) {
+        // Cria nova se nunca existiu
         conversation = await prisma.conversation.create({
           data: {
             contactId: contact.id,
             instanceId: instanceInfo.id,
-            status: 'WAITING' // Fila
+            status: 'WAITING'
           }
         });
+      } else if (conversation.status === 'CLOSED') {
+        // REGRA: Se estava fechada e o CLIENTE mandou mensagem, REABRE em WAITING
+        // Limpa o userId para que qualquer agente possa ver na fila novamente
+        conversation = await prisma.conversation.update({
+          where: { id: conversation.id },
+          data: { 
+            status: 'WAITING',
+            userId: null,
+            updatedAt: new Date()
+          }
+        });
+        console.log(`[WEBHOOK] Reabrindo conversa ${conversation.id} (Status: CLOSED -> WAITING)`);
       }
 
-      // Import do Servico caso nao tenha no webhookController (Precisa estar importado)
-      // O imports global desse modulo ja deve conter Prisma. Vamos garantir puxando UazapiService
-      const { UazapiService } = require('../services/uazapiService');
 
       let finalMediaUrl = null;
       let finalType = 'TEXT';
