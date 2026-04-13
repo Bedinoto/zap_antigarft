@@ -15,6 +15,11 @@ export const handleUazapiWebhook = async (req: Request, res: Response): Promise<
       // o que criaria um loop de falar consigo mesmo. Ao focar no chat, a instacia grava o cliente certo.
       let contactPhone = msg.chatid || payload.chat?.wa_chatid || msg.sender || msg.from || msg.remoteJid;
       
+      // Limpeza do número: remove sufixos @c.us / @s.whatsapp.net e caracteres não-numéricos
+      if (contactPhone && typeof contactPhone === 'string') {
+          contactPhone = contactPhone.split('@')[0].replace(/\D/g, '');
+      }
+      
       // Tratamento adicional: Se por precaucao for group message mas sem chatid, ele vai processar o sender
       // Mas para WAPI uazapi, chatid sempre vem.
       let textContent = msg.text;
@@ -50,11 +55,11 @@ export const handleUazapiWebhook = async (req: Request, res: Response): Promise<
          });
       }
 
-      // 3. Acha a Conversa (por contato e instância)
+      // 3. Acha a Conversa (por contato - pegamos a última em aberto ou a última de todas)
+      // Removemos a restrição de instanceId para ser mais resiliente se a instância foi recriada
       let conversation = await prisma.conversation.findFirst({
         where: {
-          contactId: contact.id,
-          instanceId: instanceInfo.id
+          contactId: contact.id
         },
         orderBy: { updatedAt: 'desc' }
       });
@@ -68,7 +73,8 @@ export const handleUazapiWebhook = async (req: Request, res: Response): Promise<
             status: 'WAITING'
           }
         });
-      } else if (conversation.status === 'CLOSED') {
+        console.log(`[WEBHOOK] Nova conversa criada para ${contactPhone}: ${conversation.id}`);
+      } else if (conversation.status === 'CLOSED' && !msg.fromMe) {
         // REGRA: Se estava fechada e o CLIENTE mandou mensagem, REABRE em WAITING
         // Limpa o userId para que qualquer agente possa ver na fila novamente
         conversation = await prisma.conversation.update({
@@ -79,7 +85,20 @@ export const handleUazapiWebhook = async (req: Request, res: Response): Promise<
             updatedAt: new Date()
           }
         });
-        console.log(`[WEBHOOK] Reabrindo conversa ${conversation.id} (Status: CLOSED -> WAITING)`);
+        console.log(`[WEBHOOK] Reabrindo conversa ${conversation.id} de ${contactPhone} (Status: CLOSED -> WAITING)`);
+      } else if (conversation.status === 'CLOSED' && msg.fromMe) {
+          // Se sou eu enviando para um chat que estava fechado, ele deve ficar ACTIVE comigo?
+          // Para evitar confusao, vamos apenas garantir que ela mude de status se houve interacao
+          // Mas se o sistema enviar algo automatico e nao quisermos reabrir, cuidado.
+          // Como o objetivo é "fazer funcionar", vamos reabrir como ACTIVE se for do agente.
+          conversation = await prisma.conversation.update({
+            where: { id: conversation.id },
+            data: { 
+              status: 'ACTIVE',
+              updatedAt: new Date()
+            }
+          });
+          console.log(`[WEBHOOK] Agente mandou mensagem em chat CLOSED. Status -> ACTIVE`);
       }
 
 
