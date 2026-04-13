@@ -250,7 +250,13 @@ export default function Dashboard() {
     if (!activeChat) return;
     if (!inputText.trim() && !attachment) return;
     
-    const textToSend = inputText;
+    let textToSend = inputText;
+    
+    // Adiciona assinatura do agente se houver texto
+    if (textToSend.trim() && loggedUser.name) {
+      textToSend = `*${loggedUser.name}*\n${textToSend}`;
+    }
+    
     const currentAttachment = attachment;
     
     setInputText('');
@@ -263,7 +269,7 @@ export default function Dashboard() {
         mediaBase64: currentAttachment ? currentAttachment.base64 : null,
         mediaType: currentAttachment ? currentAttachment.type : null,
         mediaName: currentAttachment ? currentAttachment.name : null,
-        userId: 'admin-init-12345'
+        userId: loggedUser.id || 'admin-init-12345'
       });
     } catch (err) {
       console.error('Falha ao enviar mensagem', err);
