@@ -65,8 +65,14 @@ export default function Dashboard() {
 
     // Eventos do Socket
     newSocket.on('new_message', (data) => {
-      const { conversationId, message, fromAgent } = data;
+      const { conversationId, message } = data;
       
+      // Notificação sonora se for mensagem recebida (não enviada por nós)
+      if (!message.fromMe) {
+        const audio = new Audio('/notification.mp3');
+        audio.play().catch(e => console.log('Autoplay bloqueado. Aguardando interação do usuário.'));
+      }
+
       // Update Mensagens se a mesma conversa estiver ativa
       setActiveChat((prevActiveChat) => {
         if (prevActiveChat && prevActiveChat.id === conversationId) {
